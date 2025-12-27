@@ -1,0 +1,96 @@
+import random
+import math
+import matplotlib.pyplot as plt
+
+# -----------------------------
+# Environment
+# -----------------------------
+WIDTH, HEIGHT = 100, 100
+START = (10, 10)
+GOAL = (90, 90)
+OBSTACLES = [(40, 40, 10), (60, 60, 10), (50, 20, 8)]  # (x, y, radius)
+
+STEP_SIZE = 5
+MAX_ITER = 1000
+
+# -----------------------------
+# Helper Functions
+# -----------------------------
+def distance(p1, p2):
+    return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+
+def collision(point):
+    for ox, oy, r in OBSTACLES:
+        if distance(point, (ox, oy)) <= r:
+            return True
+    return False
+
+def nearest_node(tree, point):
+    return min(tree, key=lambda n: distance(n, point))
+
+def steer(from_node, to_point):
+    theta = math.atan2(to_point[1]-from_node[1], to_point[0]-from_node[0])
+    new_point = (
+        from_node[0] + STEP_SIZE * math.cos(theta),
+        from_node[1] + STEP_SIZE * math.sin(theta)
+    )
+    return new_point
+
+# -----------------------------
+# RRT Algorithm
+# -----------------------------
+tree = [START]
+parent = {START: None}
+
+for _ in range(MAX_ITER):
+    rand_point = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+    nearest = nearest_node(tree, rand_point)
+    new_node = steer(nearest, rand_point)
+
+    if not collision(new_node):
+        tree.append(new_node)
+        parent[new_node] = nearest
+
+        if distance(new_node, GOAL) < STEP_SIZE:
+            parent[GOAL] = new_node
+            break
+
+# -----------------------------
+# Extract Path
+# -----------------------------
+path = []
+node = GOAL
+while node:
+    path.append(node)
+    node = parent.get(node)
+path.reverse()
+
+# -----------------------------
+# Visualization
+# -----------------------------
+plt.figure(figsize=(6, 6))
+
+# Plot obstacles
+for ox, oy, r in OBSTACLES:
+    circle = plt.Circle((ox, oy), r, color='red')
+    plt.gca().add_patch(circle)
+
+# Plot tree
+for child, par in parent.items():
+    if par:
+        plt.plot([child[0], par[0]], [child[1], par[1]], "-g", linewidth=0.5)
+
+# Plot path
+if len(path) > 1:
+    px, py = zip(*path)
+    plt.plot(px, py, "-b", linewidth=2, label="Path")
+
+plt.plot(START[0], START[1], "bo", label="Start")
+plt.plot(GOAL[0], GOAL[1], "ro", label="Goal")
+
+plt.xlim(0, WIDTH)
+plt.ylim(0, HEIGHT)
+plt.title("RRT Exploration Path")
+plt.legend()
+plt.grid()
+plt.show()

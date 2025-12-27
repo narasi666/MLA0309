@@ -1,0 +1,52 @@
+import random, numpy as np
+
+ROWS, COLS = 5, 5
+actions = ['U','D','L','R']
+start, goal = (0,0), (4,4)
+obstacles = [(1,2),(2,2),(3,1)]
+
+gamma, epsilon, episodes = 0.9, 0.1, 300
+
+Q = {((r,c),a):0 for r in range(ROWS) for c in range(COLS) for a in actions}
+returns = {k:[] for k in Q}
+
+def step(s,a):
+    r,c = s
+    if a=='U': r-=1
+    if a=='D': r+=1
+    if a=='L': c-=1
+    if a=='R': c+=1
+    if r<0 or r>=ROWS or c<0 or c>=COLS or (r,c) in obstacles:
+        return s,-5
+    if (r,c)==goal:
+        return (r,c),20
+    return (r,c),-1
+
+def policy(s):
+    if random.random()<epsilon:
+        return random.choice(actions)
+    return max(actions, key=lambda a: Q[(s,a)])
+
+for _ in range(episodes):
+    s = start
+    ep = []
+    while s!=goal:
+        a = policy(s)
+        ns,r = step(s,a)
+        ep.append((s,a,r))
+        s = ns
+    G, visited = 0, set()
+    for s,a,r in reversed(ep):
+        G = gamma*G + r
+        if (s,a) not in visited:
+            returns[(s,a)].append(G)
+            Q[(s,a)] = np.mean(returns[(s,a)])
+            visited.add((s,a))
+
+print("Learned Policy:")
+for r in range(ROWS):
+    for c in range(COLS):
+        if (r,c)==goal: print("G",end=" ")
+        elif (r,c) in obstacles: print("X",end=" ")
+        else: print(max(actions,key=lambda a:Q[((r,c),a)]),end=" ")
+    print()

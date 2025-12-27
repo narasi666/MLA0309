@@ -1,0 +1,84 @@
+# Policy Evaluation for Warehouse Robot
+
+import numpy as np
+
+# Grid size
+ROWS, COLS = 3, 3
+
+# Discount factor
+gamma = 0.9
+
+# Convergence threshold
+theta = 0.001
+
+# Actions
+actions = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+
+# Obstacles, item, and goal
+obstacles = [(1, 1)]
+item = (0, 2)
+goal = (2, 2)
+
+# Initialize value function
+V = np.zeros((ROWS, COLS))
+
+# Policy: equal probability for all actions
+policy = {}
+for r in range(ROWS):
+    for c in range(COLS):
+        policy[(r, c)] = {a: 0.25 for a in actions}
+
+# State transition function
+def next_state(state, action):
+    r, c = state
+
+    if action == 'UP':
+        r -= 1
+    elif action == 'DOWN':
+        r += 1
+    elif action == 'LEFT':
+        c -= 1
+    elif action == 'RIGHT':
+        c += 1
+
+    # Check boundaries
+    if r < 0 or r >= ROWS or c < 0 or c >= COLS:
+        return state, -2  # hit wall
+
+    if (r, c) in obstacles:
+        return state, -2
+
+    if (r, c) == item:
+        return (r, c), 2
+
+    if (r, c) == goal:
+        return (r, c), 5
+
+    return (r, c), 0
+
+# Policy Evaluation Algorithm
+while True:
+    delta = 0
+    for r in range(ROWS):
+        for c in range(COLS):
+            state = (r, c)
+
+            if state == goal:
+                continue
+
+            v = V[r, c]
+            new_v = 0
+
+            for action, prob in policy[state].items():
+                (nr, nc), reward = next_state(state, action)
+                new_v += prob * (reward + gamma * V[nr, nc])
+
+            V[r, c] = new_v
+            delta = max(delta, abs(v - new_v))
+
+    if delta < theta:
+        break
+
+# Display Value Function
+print("Value Function after Policy Evaluation:")
+print(V)

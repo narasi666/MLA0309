@@ -1,0 +1,53 @@
+import random
+
+# States and Actions
+states = [0, 1]          # 0: Red, 1: Green
+actions = [0, 1]         # 0: WAIT, 1: GO
+
+# Parameters
+alpha = 0.1              # Learning rate
+gamma = 0.9              # Discount factor
+episodes = 500
+
+# Actor (policy) and Critic (value)
+policy = {s: [0.5, 0.5] for s in states}
+V = {s: 0 for s in states}
+
+# Environment step
+def step(state, action):
+    if state == 0 and action == 1:   # GO on red
+        return state, -10
+    if state == 1 and action == 1:   # GO on green
+        return state, 5
+    return state, -1                 # WAIT
+
+# Choose action from policy
+def choose_action(state):
+    return random.choices(actions, policy[state])[0]
+
+# Training loop
+for _ in range(episodes):
+    state = random.choice(states)
+    action = choose_action(state)
+
+    next_state, reward = step(state, action)
+
+    # TD Error
+    td_error = reward + gamma * V[next_state] - V[state]
+
+    # Critic update
+    V[state] += alpha * td_error
+
+    # Actor update
+    policy[state][action] += alpha * td_error
+    policy[state][action] = max(policy[state][action], 0.01)
+
+    # Normalize policy
+    total = sum(policy[state])
+    policy[state][0] /= total
+    policy[state][1] /= total
+
+# Display learned policy
+print("Final Policy:")
+for s in states:
+    print(f"State {'Red' if s==0 else 'Green'} Light -> WAIT: {policy[s][0]:.2f}, GO: {policy[s][1]:.2f}")
